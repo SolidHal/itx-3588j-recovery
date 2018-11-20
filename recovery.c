@@ -707,6 +707,33 @@ print_property(const char *key, const char *name, void *cookie) {
     printf("%s=%s\n", key, name);
 }
 
+void checkSDRemoved() {
+    /*  
+    Volume* v = volume_for_path(EX_SDCARD_ROOT);
+    char *temp;
+    char *sec_dev = v->fs_options;
+    if(sec_dev != NULL) {
+        temp = strchr(sec_dev, ',');
+        if(temp) {
+            temp[0] = '\0';
+        }
+    } */ 
+
+    while(1) {
+        //int value2 = -1;
+        int value = access(getenv(SD_POINT_NAME), 0); 
+        //if(sec_dev) {
+        //  value2 = access(sec_dev, 0);
+        //}
+        //if(value == -1 && value2 == -1) {
+        if(value == -1) {
+            printf("remove sdcard\n");
+            break;
+        }else {
+            sleep(1);
+        }
+    }   
+}
 
 int
 main(int argc, char **argv) {
@@ -721,8 +748,12 @@ main(int argc, char **argv) {
     time_t start = time(NULL);
     if(access("/.rkdebug", F_OK) != 0){
         // If these fail, there's not really anywhere to complain...
-        freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
-        freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
+        //freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
+        //freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
+	char *SerialName = getSerial();
+        freopen(SerialName, "a", stdout); setbuf(stdout, NULL);
+        freopen(SerialName, "a", stderr); setbuf(stderr, NULL);
+        free(SerialName);
     } else {
 	    printf("start debug recovery...\n");
     }
@@ -945,19 +976,11 @@ main(int argc, char **argv) {
 
             printf("Please remove SD CARD!!!, wait for reboot.\n");
             ui_print("Please remove SD CARD!!!, wait for reboot.");
-
-            while (timeout--) {
-                sleep(1);
-                if (access(imageFile, F_OK) == 0) {
-                    ui_print("Please remove SD CARD!!!, wait for reboot");
-                } else {
-                    break;
-                }
-            }
+            checkSDRemoved(); 
             //ui_show_text(0);
         }
     }
-
+    printf("reboot.............\n");
     // Otherwise, get ready to boot the main system...
     finish_recovery(send_intent);
     ui_print("Rebooting...\n");

@@ -11,7 +11,7 @@
 #include <string.h>
 #include "common.h"
 #include "install.h"
-
+#include "sdboot.h"
 extern bool bSDBootUpdate;
 int do_rk_update(const char *binary, const char *path){
     printf("start with main.\n");
@@ -27,7 +27,9 @@ int do_rk_update(const char *binary, const char *path){
     args[4] = (char*)malloc(8);
     sprintf(args[4], "%d", (int)bSDBootUpdate);
     args[5] = NULL;
-
+    
+    startLedBlink(YELLOW);
+    stopLed(BLUE);
     pid_t pid = fork();
     if(pid == 0){
         close(pipefd[0]);
@@ -77,5 +79,7 @@ int do_rk_update(const char *binary, const char *path){
         LOGE("Error in %s\n(Status %d)\n", path, WEXITSTATUS(status));
         return INSTALL_ERROR;
     }
+    stopLedBlink(YELLOW);
+    startLed(YELLOW);
     return INSTALL_SUCCESS;
 }
