@@ -81,7 +81,7 @@ int readFile(DIR* dir, char* filename){
     }
     for(i = 0; i < 4; i++){
         if(strcmp(typeName[i], resultBuf) == 0){
-            //printf("type is %s.\n", typeName[i]);
+            printf("type is %s.\n", typeName[i]);
             return i;
         }
     }
@@ -96,8 +96,9 @@ void init_sd_emmc_point(){
         struct dirent* de;
         while((de = readdir(dir))){
             if(strncmp(de->d_name, "mmc", 3) == 0){
-                //printf("find mmc is %s.\n", de->d_name);
+                printf("find mmc is %s.\n", de->d_name);
                 char flag = de->d_name[3];
+		printf("flag:%c",flag);
                 int ret = -1;
                 ret = readFile(dir, de->d_name);
                 if(ret != -1){

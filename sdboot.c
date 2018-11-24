@@ -78,13 +78,10 @@ int get_cfg_Item(char *pFileName /*in*/, char *pKey /*in*/,
     char    *pTmp = NULL, *pEnd = NULL, *pBegin = NULL;
 
     char lineBuf[MaxLine];
-
-    fp = fopen(pFileName, "r");
-    if (fp == NULL) {
-        ret = -1;
-        return ret;
-    }
-
+    while(1) {
+	fp = fopen(pFileName, "r");
+        if (fp != NULL) break;
+    }	
     while (!feof(fp)) {
         memset(lineBuf, 0, sizeof(lineBuf));
         fgets(lineBuf, MaxLine, fp);

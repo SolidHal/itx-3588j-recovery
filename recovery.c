@@ -721,7 +721,7 @@ void checkSDRemoved() {
 
     while(1) {
         //int value2 = -1;
-        int value = access(getenv(SD_POINT_NAME), 0); 
+        int value = access("/dev/mmcblk2p1", 0); 
         //if(sec_dev) {
         //  value2 = access(sec_dev, 0);
         //}
@@ -771,7 +771,7 @@ main(int argc, char **argv) {
         if (is_sdcard_update()) {
             char imageFile[64] = {0};
             strlcpy(imageFile, EX_SDCARD_ROOT, sizeof(imageFile));
-            strlcat(imageFile, "/sdupdate.img", sizeof(imageFile));
+            strlcat(imageFile, "/update.img", sizeof(imageFile));
             if (access(imageFile, F_OK) == 0) {
                 sdupdate_package = strdup(imageFile);
                 bSDBootUpdate = true;
