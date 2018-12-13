@@ -759,11 +759,15 @@ main(int argc, char **argv) {
     }
     printf("Starting recovery on %s\n", ctime(&start));
 
-    ui_init();
+    if(!ui_init()){
+    	printf("Ui upgrade\n");
+    }else {
+        printf("Noui upgrade\n");
+    }
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     load_volume_table();
     setFlashPoint();
-
+    ui_print("Recovery start....................\n");
     bSDBoot = is_boot_from_SD();
     if(!bSDBoot) {
         get_args(&argc, &argv);
@@ -776,8 +780,11 @@ main(int argc, char **argv) {
                 sdupdate_package = strdup(imageFile);
                 bSDBootUpdate = true;
                 ui_show_text(1);
-                printf("sdupdate_package = %s \n",sdupdate_package);
-            }
+                printf("start sdupdate,update_package = %s \n",sdupdate_package);
+		ui_print("start sdupdate,update_package = %s \n",sdupdate_package);
+            } else {
+		ui_print("No found %s\n",imageFile);
+	    }	
         }
     }
 
@@ -938,8 +945,8 @@ main(int argc, char **argv) {
         status = do_rk_update(binary, sdupdate_package);
         if(status == INSTALL_SUCCESS){
             printf("update.img Installation success.\n");
-            ui_print("update.img Installation success.\n");
-            ui_show_text(0);
+            ui_print("\nupdate.img Installation success.\n");
+           // ui_show_text(1);
         }
 
     } else if (wipe_data) {
@@ -962,11 +969,6 @@ main(int argc, char **argv) {
         status = INSTALL_ERROR;  // No command specified
     }
 
-    if (status != INSTALL_SUCCESS) ui_set_background(BACKGROUND_ICON_ERROR);
-    if (status != INSTALL_SUCCESS || ui_text_visible()) {
-        prompt_and_wait();
-    }
-
     if (sdupdate_package != NULL && bSDBootUpdate) {
         if (status == INSTALL_SUCCESS){
             int timeout = 60;
@@ -975,11 +977,18 @@ main(int argc, char **argv) {
             strlcat(imageFile, "/sdupdate.img", sizeof(imageFile));
 
             printf("Please remove SD CARD!!!, wait for reboot.\n");
-            ui_print("Please remove SD CARD!!!, wait for reboot.");
-            checkSDRemoved(); 
+            ui_print("Please remove SD CARD!!!, wait for reboot.\n");
             //ui_show_text(0);
+            checkSDRemoved();
+	    ui_show_text(0);
         }
     }
+
+    if (status != INSTALL_SUCCESS) ui_set_background(BACKGROUND_ICON_ERROR);
+    if (status != INSTALL_SUCCESS || ui_text_visible()) {
+        prompt_and_wait();
+    }
+
     printf("reboot.............\n");
     // Otherwise, get ready to boot the main system...
     finish_recovery(send_intent);

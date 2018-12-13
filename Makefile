@@ -1,6 +1,6 @@
 PROJECT_DIR := $(shell pwd)
 CC = gcc
-RecoveryNoUi=1
+#RecoveryNoUi=1
 PROM = recovery
 OBJ = recovery.o \
 	default_recovery_ui.o \

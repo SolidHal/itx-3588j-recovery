@@ -29,8 +29,9 @@
 #include "minui/minui.h"
 #include "recovery_ui.h"
 
-void ui_init(void)
+int ui_init(void)
 {
+    return -1;
 }
 
 void ui_set_background(int icon)
