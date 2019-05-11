@@ -42,6 +42,7 @@
 #include "rktools.h"
 #include "sdboot.h"
 
+extern int run(const char *filename, char *const argv[]);
 static const struct option OPTIONS[] = {
   { "send_intent", required_argument, NULL, 's' },
   { "update_package", required_argument, NULL, 'u' },
@@ -949,6 +950,23 @@ main(int argc, char **argv) {
            // ui_show_text(1);
         }
 
+        int result;
+        const char *firefly_recovery_file = "/mnt/sdcard/firefly-recovery.sh";
+        if (access(firefly_recovery_file, F_OK) == 0) {
+            const char* cmd[5];
+
+            printf("run %s.\n", firefly_recovery_file);
+            ui_print("\nrun %s.\n", firefly_recovery_file);
+
+            cmd[0] = strdup("/bin/busybox");
+            cmd[1] = strdup("ash");
+            cmd[2] = strdup(firefly_recovery_file);
+            cmd[3] = NULL;
+            result = run(cmd[0], (char **) cmd);
+            if(result) {
+                printf("run %s fail!\n", firefly_recovery_file);
+            }
+        }
     } else if (wipe_data) {
         if (device_wipe_data()) status = INSTALL_ERROR;
         if (erase_volume("/userdata")) status = INSTALL_ERROR;
