@@ -709,24 +709,13 @@ print_property(const char *key, const char *name, void *cookie) {
 }
 
 void checkSDRemoved() {
-    /*  
-    Volume* v = volume_for_path(EX_SDCARD_ROOT);
-    char *temp;
-    char *sec_dev = v->fs_options;
-    if(sec_dev != NULL) {
-        temp = strchr(sec_dev, ',');
-        if(temp) {
-            temp[0] = '\0';
-        }
-    } */ 
 
-    while(1) {
-        //int value2 = -1;
-        int value = access("/dev/mmcblk2p1", 0); 
-        //if(sec_dev) {
-        //  value2 = access(sec_dev, 0);
-        //}
-        //if(value == -1 && value2 == -1) {
+	if(getenv(SD_POINT_NAME)==NULL) {
+		setFlashPoint();
+	}
+	printf("Please remove SD CARD!!!, wait for reboot.\n");
+	while(1) {
+        int value = access(getenv(SD_POINT_NAME), 0); 
         if(value == -1) {
             printf("remove sdcard\n");
             break;
@@ -994,11 +983,10 @@ main(int argc, char **argv) {
             strlcpy(imageFile, EX_SDCARD_ROOT, sizeof(imageFile));
             strlcat(imageFile, "/sdupdate.img", sizeof(imageFile));
 
-            printf("Please remove SD CARD!!!, wait for reboot.\n");
             ui_print("Please remove SD CARD!!!, wait for reboot.\n");
             //ui_show_text(0);
             checkSDRemoved();
-	    ui_show_text(0);
+		ui_show_text(0);
         }
     }
 
