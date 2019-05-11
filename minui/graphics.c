@@ -362,10 +362,10 @@ int gr_init(void)
     gr_vt_fd = open("/dev/tty0", O_RDWR | O_SYNC);
     if (gr_vt_fd < 0) {
         // This is non-fatal; post-Cupcake kernels don't have tty0.
-        perror("can't open /dev/tty0");
+        printf("can't open /dev/tty0");
     } else if (ioctl(gr_vt_fd, KDSETMODE, (void*) KD_GRAPHICS)) {
         // However, if we do open tty0, we expect the ioctl to work.
-        perror("failed KDSETMODE to KD_GRAPHICS on tty0");
+        printf("failed KDSETMODE to KD_GRAPHICS on tty0");
         gr_exit();
         return -1;
     }
@@ -381,6 +381,9 @@ int gr_init(void)
     if (!gr_draw) {
         gr_backend = open_drm();
         gr_draw = gr_backend->init(gr_backend);
+	if (gr_draw == NULL) {
+            return -1;
+        }
     }
 #if 0
     if (!gr_draw) {
