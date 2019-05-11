@@ -776,7 +776,7 @@ main(int argc, char **argv) {
         if (is_sdcard_update()) {
             char imageFile[64] = {0};
             strlcpy(imageFile, EX_SDCARD_ROOT, sizeof(imageFile));
-            strlcat(imageFile, "/update.img", sizeof(imageFile));
+            strlcat(imageFile, "/sdupdate.img", sizeof(imageFile));
             if (access(imageFile, F_OK) == 0) {
                 sdupdate_package = strdup(imageFile);
                 bSDBootUpdate = true;
