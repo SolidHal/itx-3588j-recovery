@@ -985,8 +985,11 @@ main(int argc, char **argv) {
 
             ui_print("Please remove SD CARD!!!, wait for reboot.\n");
             //ui_show_text(0);
+			stopLedBlink(YELLOW);
+			startLed(YELLOW);
+
             checkSDRemoved();
-		ui_show_text(0);
+			ui_show_text(0);
         }
     }
 

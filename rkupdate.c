@@ -79,7 +79,5 @@ int do_rk_update(const char *binary, const char *path){
         LOGE("Error in %s\n(Status %d)\n", path, WEXITSTATUS(status));
         return INSTALL_ERROR;
     }
-    stopLedBlink(YELLOW);
-    startLed(YELLOW);
     return INSTALL_SUCCESS;
 }
