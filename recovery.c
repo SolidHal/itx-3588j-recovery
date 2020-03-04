@@ -973,7 +973,29 @@ main(int argc, char **argv) {
 		ui_print("resize oem done.\n");
 		ui_show_text(0);
     } else {
-        status = INSTALL_ERROR;  // No command specified
+		if (access("/dev/block/by-name/backup", F_OK) == 0) {
+			int ret;
+			ret = ensure_path_mounted("/backup");
+			if (ret == 0) {
+				int result;
+				const char *cmd[5];
+				const char *backup_make_file = "/backup/make.sh";
+				if (access(backup_make_file, F_OK) == 0) {
+					printf("run %s.\n", backup_make_file);
+					cmd[0] = strdup("/bin/busybox");
+					cmd[1] = strdup("ash");
+					cmd[2] = strdup(backup_make_file);
+					cmd[3] = NULL;
+					result = run(cmd[0], (char **) cmd);
+					if (result) {
+						printf("run %s fail!\n", backup_make_file);
+					}
+				}
+				ret = ensure_path_unmounted("/backup");
+			}
+		}
+		status = INSTALL_ERROR;  // No command specified
+		ui_show_text(0);
     }
 
     if (sdupdate_package != NULL && bSDBootUpdate) {
@@ -984,7 +1006,6 @@ main(int argc, char **argv) {
             strlcat(imageFile, "/sdupdate.img", sizeof(imageFile));
 
             ui_print("Please remove SD CARD!!!, wait for reboot.\n");
-            //ui_show_text(0);
 			stopLedBlink(YELLOW);
 			startLed(YELLOW);
 
@@ -993,14 +1014,16 @@ main(int argc, char **argv) {
         }
     }
 
-    if (status != INSTALL_SUCCESS) ui_set_background(BACKGROUND_ICON_ERROR);
-    if (status != INSTALL_SUCCESS || ui_text_visible()) {
-        prompt_and_wait();
+    if (status != INSTALL_SUCCESS) {
+		ui_set_background(BACKGROUND_ICON_ERROR);
+		prompt_and_wait();
     }
 
     printf("reboot.............\n");
     // Otherwise, get ready to boot the main system...
-    finish_recovery(send_intent);
+	if (!bSDBootUpdate) {
+		finish_recovery(send_intent);
+	};
     ui_print("Rebooting...\n");
     sync();
     reboot(RB_AUTOBOOT);
