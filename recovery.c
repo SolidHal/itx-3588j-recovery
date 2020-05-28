@@ -41,6 +41,7 @@
 #include "encryptedfs_provisioning.h"
 #include "rktools.h"
 #include "sdboot.h"
+#include "mtdutils/mtdutils.h"
 
 extern int run(const char *filename, char *const argv[]);
 static const struct option OPTIONS[] = {
@@ -61,7 +62,7 @@ static const char *SDCARD_ROOT = "/sdcard";
 static const char *TEMPORARY_LOG_FILE = "/tmp/recovery.log";
 static const char *SIDELOAD_TEMP_DIR = "/tmp/sideload";
 static const char *coldboot_done = "/dev/.coldboot_done";
-char systemFlag[256];
+char systemFlag[252];
 bool bSDBootUpdate = false;
 
 /*
@@ -812,6 +813,21 @@ main(int argc, char **argv) {
     }
     printf("\n");
 
+#if 0   //add for test fopen /userdata/* function.
+    FILE *hfile;
+    char* filename = "/userdata/test.txt";
+    char buffer[1024];
+    hfile = fopen(filename, "rb");
+    if (!hfile)
+    {
+        printf("fopen <%s> fail\n", filename);
+        return;
+    }
+
+    fread(buffer,1,sizeof(buffer),hfile);
+    printf("%s \n", buffer);
+#endif
+
     if (update_package) {
         // For backwards compatibility on the cache partition only, if
         // we're given an old 'root' path "CACHE:foo", change it to
@@ -877,7 +893,7 @@ main(int argc, char **argv) {
         char text[128] ;
         memset(text, 0, sizeof(text));
 
-        fd = open(resutl_file, O_CREAT | O_WRONLY | O_TRUNC);
+        fd = open(resutl_file, O_CREAT | O_WRONLY | O_TRUNC, 0777);
         if (fd < 0) {
             LOGE("open /userdata/update_rst.txt fail, errno = %d\n", errno);
         }
@@ -899,7 +915,13 @@ main(int argc, char **argv) {
         }
         if(ret == 0) {
             printf(">>>rkflash will update from %s\n", update_package);
+            #ifdef USE_RKUPDATE
             status = do_rk_update(binary, update_package);
+            #endif
+            #ifdef USE_UPDATEENGINE
+            const char* updateEnginebin = "/usr/bin/updateEngine";
+            status = do_rk_updateEngine(updateEnginebin, update_package);
+            #endif
             if(status == INSTALL_SUCCESS){
                 strcpy(systemFlag, update_package);
 
@@ -930,9 +952,46 @@ main(int argc, char **argv) {
         ui_show_text(0);
     }else if (sdupdate_package != NULL) {
         // update image from sdcard
+        #ifdef USE_RKUPDATE
         const char* binary = "/usr/bin/rkupdate";
         printf(">>>sdboot update will update from %s\n", sdupdate_package);
         status = do_rk_update(binary, sdupdate_package);
+        #endif
+
+        #ifdef USE_UPDATEENGINE
+        if (access("/mnt/sdcard/sdupdate.bin", F_OK)) {
+            int tmp_fd = creat("/mnt/sdcard/sdupdate.bin", 0777);
+            if (tmp_fd < 0) {
+                printf("creat /mnt/sdcard/sdupdate.bin error.\n");
+                status = INSTALL_ERROR;
+            } else {
+                close(tmp_fd);
+                const char* updateEnginebin = "/usr/bin/updateEngine";
+                status = do_rk_updateEngine(updateEnginebin, sdupdate_package);
+            }
+        }
+
+        if(isMtdDevice() == 0){
+            printf("start flash_cp to /dev/mtd0.\n");
+            size_t total_size;
+            size_t erase_size;
+            mtd_scan_partitions();
+            const MtdPartition *part = mtd_find_partition_by_name("rk-nand");
+            if (part == NULL || mtd_partition_info(part, &total_size, &erase_size, NULL)) {
+                printf("Error: Can't find %s.\n", "rk-nand");
+            }else{
+                char cmd_erase[1024] = {0};
+                sprintf(cmd_erase, "flash_erase /dev/mtd0 0x0 %ld", total_size/erase_size);
+                char *cmd_cp = "flashcp /mnt/sdcard/sdupdate.bin /dev/mtd0";
+                system(cmd_erase);
+                system(cmd_cp);
+            }
+        }else{
+            printf("dd sdupdate.bin to emmc partition.\n");
+        }
+
+        #endif
+
         if(status == INSTALL_SUCCESS){
             printf("update.img Installation success.\n");
             ui_print("\nupdate.img Installation success.\n");
@@ -1000,12 +1059,17 @@ main(int argc, char **argv) {
 
     if (sdupdate_package != NULL && bSDBootUpdate) {
         if (status == INSTALL_SUCCESS){
-            int timeout = 60;
             char imageFile[64] = {0};
             strlcpy(imageFile, EX_SDCARD_ROOT, sizeof(imageFile));
             strlcat(imageFile, "/sdupdate.img", sizeof(imageFile));
 
-            ui_print("Please remove SD CARD!!!, wait for reboot.\n");
+            /* Updating is finished here, we must print this message
+             * in console, it shows user a specific message that
+             * updating is completely, remove SD CARD and reboot */
+            fflush(stdout);
+            freopen("/dev/console", "w", stdout);
+            printf("\nPlease remove SD CARD!!!, wait for reboot.\n");
+            ui_print("Please remove SD CARD!!!, wait for reboot.");
 			stopLedBlink(YELLOW);
 			startLed(YELLOW);
 
@@ -1019,12 +1083,13 @@ main(int argc, char **argv) {
 		prompt_and_wait();
     }
 
-    printf("reboot.............\n");
     // Otherwise, get ready to boot the main system...
 	if (!bSDBootUpdate) {
 		finish_recovery(send_intent);
 	};
     ui_print("Rebooting...\n");
+    printf("Reboot...\n");
+    fflush(stdout);
     sync();
     reboot(RB_AUTOBOOT);
     return EXIT_SUCCESS;
