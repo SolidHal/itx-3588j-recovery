@@ -12,6 +12,7 @@
 #include "common.h"
 #include "install.h"
 #include "bootloader.h"
+#include "sdboot.h"
 
 #define URL_MAX_LENGTH 512
 extern bool bSDBootUpdate;
