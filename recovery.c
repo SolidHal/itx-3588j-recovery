@@ -1059,9 +1059,8 @@ main(int argc, char **argv) {
 
     if (sdupdate_package != NULL && bSDBootUpdate) {
         if (status == INSTALL_SUCCESS){
-            char imageFile[64] = {0};
-            strlcpy(imageFile, EX_SDCARD_ROOT, sizeof(imageFile));
-            strlcat(imageFile, "/sdupdate.img", sizeof(imageFile));
+            char *SDDdevice =
+                     strdup(get_mounted_device_from_path(EX_SDCARD_ROOT));
 
             /* Updating is finished here, we must print this message
              * in console, it shows user a specific message that
@@ -1074,7 +1073,8 @@ main(int argc, char **argv) {
 			startLed(YELLOW);
 
             checkSDRemoved();
-			ui_show_text(0);
+            free(SDDdevice);
+            ui_show_text(0);
         }
     }
 
