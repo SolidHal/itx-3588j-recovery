@@ -25,6 +25,7 @@
 
 #include "mtdutils/mtdutils.h"
 #include "mtdutils/mounts.h"
+#include "mtdutils/rk29.h"
 #include "roots.h"
 #include "common.h"
 #include "rktools.h"
@@ -426,7 +427,7 @@ int format_volume(const char* volume) {
 	}
 
 	if (strcmp(v->fs_type, "ext2") == 0) {
-		int result = rk_make_ext2fs(v->device, 0, v->mount_point);//make_ext2fs(v->device, NULL, NULL, 0, 0, 0);
+		int result = rk_make_ext2fs(v->device);//make_ext2fs(v->device, NULL, NULL, 0, 0, 0);
 		if (result != 0) {
 			LOGE("format_volume: make_extf2fs failed on %s\n", v->device);
 			return -1;
@@ -434,7 +435,7 @@ int format_volume(const char* volume) {
 		return 0;
 	}
 	if (strcmp(v->fs_type, "vfat") == 0) {
-		int result = make_vfat(v->device, 0, v->mount_point);
+		int result = make_vfat(v->device, v->mount_point);
 		if (result != 0) {
 			LOGE("format_volume: make_vfat failed on %s\n", v->device);
 			return -1;
@@ -443,7 +444,7 @@ int format_volume(const char* volume) {
 	}
 
 	if (strcmp(v->fs_type, "ntfs") == 0) {
-		int result = make_ntfs(v->device, 0, v->mount_point);
+		int result = make_ntfs(v->device, v->mount_point);
 		if (result != 0) {
 			LOGE("format_volume: make_ntfs failed on %s\n", v->device);
 			return -1;
