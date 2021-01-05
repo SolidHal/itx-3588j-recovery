@@ -27,6 +27,18 @@ int get_cfg_Item(char *pFileName /*in*/, char *pKey /*in*/,
                   char * pValue/*in out*/, int * pValueLen /*out*/);
 bool is_sdcard_update(void);
 
+#define YELLOW 1
+#define BLUE 2
+static pthread_t tid_yellow_led;
+static pthread_t tid_blue_led;
+static bool isLedFlash = false;
+void *thrd_yellow_led_func(void *arg);
+void *thrd_blue_led_func(void *arg);
+void startLedBlink(int led);
+void startLed(int led);
+void stopLed(int led);
+void stopLedBlink(int led);
+
 #ifdef  __cplusplus
 }
 #endif
