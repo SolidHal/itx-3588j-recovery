@@ -12,6 +12,7 @@
 #include "common.h"
 #include "install.h"
 #include "bootloader.h"
+#include "sdboot.h"
 
 #define URL_MAX_LENGTH 512
 extern bool bSDBootUpdate;
@@ -116,6 +117,9 @@ int do_rk_update(const char *binary, const char *path) {
     args[4] = (char*)malloc(8);
     sprintf(args[4], "%d", (int)bSDBootUpdate);
     args[5] = NULL;
+    startLedBlink(YELLOW);
+    stopLed(BLUE);
+
     return start_main(binary, args, pipefd);
 #if 0
     pid_t pid = fork();

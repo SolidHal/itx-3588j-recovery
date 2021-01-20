@@ -78,13 +78,10 @@ int get_cfg_Item(char *pFileName /*in*/, char *pKey /*in*/,
     char    *pTmp = NULL, *pEnd = NULL, *pBegin = NULL;
 
     char lineBuf[MaxLine];
-
-    fp = fopen(pFileName, "r");
-    if (fp == NULL) {
-        ret = -1;
-        return ret;
-    }
-
+    while(1) {
+	fp = fopen(pFileName, "r");
+        if (fp != NULL) break;
+    }	
     while (!feof(fp)) {
         memset(lineBuf, 0, sizeof(lineBuf));
         fgets(lineBuf, MaxLine, fp);
@@ -171,3 +168,118 @@ bool is_sdcard_update(void) {
     printf("%s out\n",__func__);
     return true;
 }
+#if 1
+void *thrd_yellow_led_func(void *arg) {
+        FILE * ledFd = NULL;
+        bool onoff = false;
+
+        while(isLedFlash) {
+                ledFd = fopen("/sys/class/leds/firefly:yellow:user/brightness", "w");
+                if(onoff) {
+                        fprintf(ledFd, "%d", 0);
+                        onoff = false;
+                }else {
+                        fprintf(ledFd, "%d", 1);
+                        onoff = true;
+                }
+
+                fclose(ledFd);
+                usleep(500 * 1000);
+        }
+
+        printf("stopping led thread, close led and exit\n");
+        ledFd = fopen("/sys/class/leds/firefly:yellow:user/brightness", "w");
+        fprintf(ledFd, "%d", 0);
+        fclose(ledFd);
+        pthread_exit(NULL);
+        return NULL;
+}
+
+void *thrd_blue_led_func(void *arg) {
+        FILE * ledFd = NULL;
+        bool onoff = false;
+
+        while(isLedFlash) {
+                ledFd = fopen("/sys/class/leds/firefly:blue:power/brightness", "w");
+                if(onoff) {
+                        fprintf(ledFd, "%d", 0);
+                        onoff = false;
+                }else {
+                        fprintf(ledFd, "%d", 1);
+                        onoff = true;
+                }
+
+                fclose(ledFd);
+                usleep(500 * 1000);
+        }
+
+        printf("stopping led thread, close led and exit\n");
+        ledFd = fopen("/sys/class/leds/firefly:blue:power/brightness", "w");
+        fprintf(ledFd, "%d", 0);
+        fclose(ledFd);
+        pthread_exit(NULL);
+        return NULL;
+}
+
+void startLedBlink(int led) {
+        isLedFlash = true;
+        if(led == YELLOW) {
+                if (pthread_create(&tid_yellow_led,NULL,thrd_yellow_led_func,NULL)!=0) {
+                        printf("Create led thread error!\n");
+                }
+                printf("tid in led pthread: %u\n",tid_yellow_led);
+        }
+        else if(led == BLUE) {
+                if (pthread_create(&tid_blue_led,NULL,thrd_blue_led_func,NULL)!=0) {
+                        printf("Create led thread error!\n");
+                }
+                printf("tid in led pthread: %u\n",tid_blue_led);
+        }
+}
+
+void startLed(int led) {
+        FILE * ledFd = NULL;
+        if(led == YELLOW) {
+                ledFd = fopen("/sys/class/leds/firefly:yellow:user/brightness", "w");
+                fprintf(ledFd, "%d", 1);
+                fclose(ledFd);
+        }
+        else if (led == BLUE) {
+                ledFd = fopen("/sys/class/leds/firefly:blue:power/brightness", "w");
+                fprintf(ledFd, "%d", 1);
+                fclose(ledFd);
+        }
+}
+void stopLed(int led) {
+        FILE * ledFd = NULL;
+        if(led == YELLOW) {
+                ledFd = fopen("/sys/class/leds/firefly:yellow:user/brightness", "w");
+                fprintf(ledFd, "%d", 0);
+                fclose(ledFd);
+        }
+        else if (led == BLUE) {
+                ledFd = fopen("/sys/class/leds/firefly:blue:power/brightness", "w");
+                fprintf(ledFd, "%d", 0);
+                fclose(ledFd);
+        }
+}
+void stopLedBlink(int led) {
+        void *tret;
+        isLedFlash = false;
+
+        if (led == YELLOW) {
+                if (pthread_join(tid_yellow_led, &tret)!=0){
+                        printf("Join led thread error!\n");
+                }else {
+                        printf("join led thread success!\n");
+                }
+        } else if (led == BLUE) {
+                if (pthread_join(tid_blue_led, &tret)!=0){
+                        printf("Join led thread error!\n");
+                }else {
+                        printf("join led thread success!\n");
+                }
+        }
+}
+#endif
+

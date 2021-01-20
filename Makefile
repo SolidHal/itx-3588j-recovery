@@ -1,5 +1,6 @@
 PROJECT_DIR := $(shell pwd)
 CC = gcc
+#RecoveryNoUi=1
 PROM = recovery
 UPDATE_ENGINE = updateEngine
 

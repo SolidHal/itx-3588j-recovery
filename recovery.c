@@ -43,6 +43,7 @@
 #include "sdboot.h"
 #include "mtdutils/mtdutils.h"
 
+extern int run(const char *filename, char *const argv[]);
 static const struct option OPTIONS[] = {
   { "send_intent", required_argument, NULL, 's' },
   { "update_package", required_argument, NULL, 'u' },
@@ -708,6 +709,22 @@ print_property(const char *key, const char *name, void *cookie) {
     printf("%s=%s\n", key, name);
 }
 
+void checkSDRemoved() {
+
+	if(getenv(SD_POINT_NAME)==NULL) {
+		setFlashPoint();
+	}
+	printf("Please remove SD CARD!!!, wait for reboot.\n");
+	while(1) {
+        int value = access(getenv(SD_POINT_NAME), 0); 
+        if(value == -1) {
+            printf("remove sdcard\n");
+            break;
+        }else {
+            sleep(1);
+        }
+    }   
+}
 
 int
 main(int argc, char **argv) {
@@ -722,18 +739,26 @@ main(int argc, char **argv) {
     time_t start = time(NULL);
     if(access("/.rkdebug", F_OK) != 0){
         // If these fail, there's not really anywhere to complain...
-        freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
-        freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
+        //freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
+        //freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
+	char *SerialName = getSerial();
+        freopen(SerialName, "a", stdout); setbuf(stdout, NULL);
+        freopen(SerialName, "a", stderr); setbuf(stderr, NULL);
+        free(SerialName);
     } else {
 	    printf("start debug recovery...\n");
     }
     printf("Starting recovery on %s\n", ctime(&start));
 
-    ui_init();
+    if(!ui_init()){
+    	printf("Ui upgrade\n");
+    }else {
+        printf("Noui upgrade\n");
+    }
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     load_volume_table();
     setFlashPoint();
-
+    ui_print("Recovery start....................\n");
     bSDBoot = is_boot_from_SD();
     if(!bSDBoot) {
         get_args(&argc, &argv);
@@ -746,8 +771,11 @@ main(int argc, char **argv) {
                 sdupdate_package = strdup(imageFile);
                 bSDBootUpdate = true;
                 ui_show_text(1);
-                printf("sdupdate_package = %s \n",sdupdate_package);
-            }
+                printf("start sdupdate,update_package = %s \n",sdupdate_package);
+		ui_print("start sdupdate,update_package = %s \n",sdupdate_package);
+            } else {
+		ui_print("No found %s\n",imageFile);
+	    }	
         }
     }
 
@@ -966,10 +994,27 @@ main(int argc, char **argv) {
 
         if(status == INSTALL_SUCCESS){
             printf("update.img Installation success.\n");
-            ui_print("update.img Installation success.\n");
-            ui_show_text(0);
+            ui_print("\nupdate.img Installation success.\n");
+           // ui_show_text(1);
         }
 
+        int result;
+        const char *firefly_recovery_file = "/mnt/sdcard/firefly-recovery.sh";
+        if (access(firefly_recovery_file, F_OK) == 0) {
+            const char* cmd[5];
+
+            printf("run %s.\n", firefly_recovery_file);
+            ui_print("\nrun %s.\n", firefly_recovery_file);
+
+            cmd[0] = strdup("/bin/busybox");
+            cmd[1] = strdup("ash");
+            cmd[2] = strdup(firefly_recovery_file);
+            cmd[3] = NULL;
+            result = run(cmd[0], (char **) cmd);
+            if(result) {
+                printf("run %s fail!\n", firefly_recovery_file);
+            }
+        }
     } else if (wipe_data) {
         if (device_wipe_data()) status = INSTALL_ERROR;
         if (erase_volume("/userdata")) status = INSTALL_ERROR;
@@ -987,12 +1032,29 @@ main(int argc, char **argv) {
 		ui_print("resize oem done.\n");
 		ui_show_text(0);
     } else {
-        status = INSTALL_ERROR;  // No command specified
-    }
-
-    if (status != INSTALL_SUCCESS) ui_set_background(BACKGROUND_ICON_ERROR);
-    if (status != INSTALL_SUCCESS || ui_text_visible()) {
-        prompt_and_wait();
+		if (access("/dev/block/by-name/backup", F_OK) == 0) {
+			int ret;
+			ret = ensure_path_mounted("/backup");
+			if (ret == 0) {
+				int result;
+				const char *cmd[5];
+				const char *backup_make_file = "/backup/make.sh";
+				if (access(backup_make_file, F_OK) == 0) {
+					printf("run %s.\n", backup_make_file);
+					cmd[0] = strdup("/bin/busybox");
+					cmd[1] = strdup("ash");
+					cmd[2] = strdup(backup_make_file);
+					cmd[3] = NULL;
+					result = run(cmd[0], (char **) cmd);
+					if (result) {
+						printf("run %s fail!\n", backup_make_file);
+					}
+				}
+				ret = ensure_path_unmounted("/backup");
+			}
+		}
+		status = INSTALL_ERROR;  // No command specified
+		ui_show_text(0);
     }
 
     if (sdupdate_package != NULL && bSDBootUpdate) {
@@ -1000,7 +1062,6 @@ main(int argc, char **argv) {
             char *SDDdevice =
                      strdup(get_mounted_device_from_path(EX_SDCARD_ROOT));
 
-            ensure_ex_path_unmounted(EX_SDCARD_ROOT);
             /* Updating is finished here, we must print this message
              * in console, it shows user a specific message that
              * updating is completely, remove SD CARD and reboot */
@@ -1008,14 +1069,24 @@ main(int argc, char **argv) {
             freopen("/dev/console", "w", stdout);
             printf("\nPlease remove SD CARD!!!, wait for reboot.\n");
             ui_print("Please remove SD CARD!!!, wait for reboot.");
+			stopLedBlink(YELLOW);
+			startLed(YELLOW);
 
-            while (access(SDDdevice, F_OK) == 0) { sleep(1); }
+            checkSDRemoved();
             free(SDDdevice);
+            ui_show_text(0);
         }
     }
 
+    if (status != INSTALL_SUCCESS) {
+		ui_set_background(BACKGROUND_ICON_ERROR);
+		prompt_and_wait();
+    }
+
     // Otherwise, get ready to boot the main system...
-    finish_recovery(send_intent);
+	if (!bSDBootUpdate) {
+		finish_recovery(send_intent);
+	};
     ui_print("Rebooting...\n");
     printf("Reboot...\n");
     fflush(stdout);
