@@ -168,6 +168,7 @@ int isMtdDevice() {
     char *s = NULL;
     fd = open("/proc/cmdline", O_RDONLY);
     ret = read(fd, (char*)param, 2048);
+    close(fd);
     s = strstr(param,"storagemedia");
     if(s == NULL){
         printf("no found storagemedia in cmdline, default is not MTD.\n");
@@ -187,6 +188,22 @@ int isMtdDevice() {
         if (strncmp(s, "mtd", 3) == 0 ) {
             printf("Now is MTD.\n");
             return 0;
+        } else if (strncmp(s, "sd", 2) == 0) {
+            printf("Now is SD.\n");
+            if ( !access(MTD_PATH, F_OK) ) {
+                fd = open(MTD_PATH, O_RDONLY);
+                ret = read(fd, (char*)param, 2048);
+                close(fd);
+
+                s = strstr(param,"mtd");
+                if(s == NULL){
+                    LOGI("no found mtd.\n");
+                    return -1;
+                }
+                LOGI("Now is MTD.\n");
+                return 0;
+            }
+
         }
     }
     printf("devices is not MTD.\n");
