@@ -175,6 +175,9 @@ void *thrd_yellow_led_func(void *arg) {
 
         while(isLedFlash) {
                 ledFd = fopen("/sys/class/leds/firefly:yellow:user/brightness", "w");
+				if (ledFd == NULL){
+					ledFd = fopen("/sys/class/leds/firefly:blue:diy/brightness", "w");
+				}
                 if(onoff) {
                         fprintf(ledFd, "%d", 0);
                         onoff = false;
@@ -189,6 +192,9 @@ void *thrd_yellow_led_func(void *arg) {
 
         printf("stopping led thread, close led and exit\n");
         ledFd = fopen("/sys/class/leds/firefly:yellow:user/brightness", "w");
+		if (ledFd == NULL){
+			ledFd = fopen("/sys/class/leds/firefly:blue:diy/brightness", "w");
+		}
         fprintf(ledFd, "%d", 0);
         fclose(ledFd);
         pthread_exit(NULL);
@@ -201,6 +207,9 @@ void *thrd_blue_led_func(void *arg) {
 
         while(isLedFlash) {
                 ledFd = fopen("/sys/class/leds/firefly:blue:power/brightness", "w");
+				if (ledFd == NULL){
+					ledFd = fopen("/sys/class/leds/firefly:red:power/brightness", "w");
+				}
                 if(onoff) {
                         fprintf(ledFd, "%d", 0);
                         onoff = false;
@@ -215,6 +224,9 @@ void *thrd_blue_led_func(void *arg) {
 
         printf("stopping led thread, close led and exit\n");
         ledFd = fopen("/sys/class/leds/firefly:blue:power/brightness", "w");
+		if (ledFd == NULL){
+			ledFd = fopen("/sys/class/leds/firefly:red:power/brightness", "w");
+		}
         fprintf(ledFd, "%d", 0);
         fclose(ledFd);
         pthread_exit(NULL);
@@ -241,11 +253,17 @@ void startLed(int led) {
         FILE * ledFd = NULL;
         if(led == YELLOW) {
                 ledFd = fopen("/sys/class/leds/firefly:yellow:user/brightness", "w");
+				if (ledFd == NULL){
+					ledFd = fopen("/sys/class/leds/firefly:blue:diy/brightness", "w");
+				}
                 fprintf(ledFd, "%d", 1);
                 fclose(ledFd);
         }
         else if (led == BLUE) {
                 ledFd = fopen("/sys/class/leds/firefly:blue:power/brightness", "w");
+				if (ledFd == NULL){
+					ledFd = fopen("/sys/class/leds/firefly:red:power/brightness", "w");
+				}
                 fprintf(ledFd, "%d", 1);
                 fclose(ledFd);
         }
@@ -254,11 +272,17 @@ void stopLed(int led) {
         FILE * ledFd = NULL;
         if(led == YELLOW) {
                 ledFd = fopen("/sys/class/leds/firefly:yellow:user/brightness", "w");
+				if (ledFd == NULL){
+					ledFd = fopen("/sys/class/leds/firefly:blue:diy/brightness", "w");
+				}
                 fprintf(ledFd, "%d", 0);
                 fclose(ledFd);
         }
         else if (led == BLUE) {
                 ledFd = fopen("/sys/class/leds/firefly:blue:power/brightness", "w");
+				if (ledFd == NULL){
+					ledFd = fopen("/sys/class/leds/firefly:red:power/brightness", "w");
+				}
                 fprintf(ledFd, "%d", 0);
                 fclose(ledFd);
         }
