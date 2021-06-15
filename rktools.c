@@ -190,7 +190,7 @@ int isMtdDevice() {
             return 0;
         } else if (strncmp(s, "sd", 2) == 0) {
             printf("Now is SD.\n");
-            if ( !access(MTD_PATH, F_OK) ) {
+            /*if ( !access(MTD_PATH, F_OK) ) {
                 fd = open(MTD_PATH, O_RDONLY);
                 ret = read(fd, (char*)param, 2048);
                 close(fd);
@@ -202,7 +202,7 @@ int isMtdDevice() {
                 }
                 LOGI("Now is MTD.\n");
                 return 0;
-            }
+            }*/
 
         }
     }
