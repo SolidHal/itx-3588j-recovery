@@ -41,6 +41,8 @@ typedef struct {
     int char_height;
 } GRFont;
 
+extern minui_backend* open_drm();
+
 static GRFont* gr_font = NULL;
 static minui_backend* gr_backend = NULL;
 
@@ -52,10 +54,10 @@ static int gr_vt_fd = -1;
 
 static uint32_t gr_current = ~0;
 static uint32_t alpha_mask = 0xff000000;
-
-static GRSurface* gr_draw = NULL;
 static GRRotation rotation = ROTATION_NONE;
 
+GRSurface* gr_draw = NULL;
+extern minui_backend* open_drm();
 
 //static bool outside(int x, int y)
 //{
@@ -442,9 +444,8 @@ int gr_init(void)
     if (!gr_draw) {
         gr_backend = open_drm();
         gr_draw = gr_backend->init(gr_backend);
-	if (gr_draw == NULL) {
+        if (gr_draw == NULL)
             return -1;
-        }
     }
 #if 0
     if (!gr_draw) {

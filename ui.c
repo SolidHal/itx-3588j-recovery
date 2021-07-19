@@ -89,6 +89,8 @@ static pthread_cond_t key_queue_cond = PTHREAD_COND_INITIALIZER;
 static int key_queue[256], key_queue_len = 0;
 static volatile char key_pressed[KEY_MAX + 1];
 
+extern GRSurface* gr_draw;
+
 // Clear the screen and draw the currently selected background icon (if any).
 // Should only be called with gUpdateMutex locked.
 static void draw_background_locked(gr_surface icon)
@@ -320,12 +322,15 @@ static void *input_thread(void *cookie)
 
 int ui_init(void)
 {
-    if(gr_init()==-1){
-    	printf("gr_init faile\n");
-	Noui=1;
-	return -1;
-    }
-    ev_init(input_callback, NULL);
+    int ret = 0;
+    ret = gr_init();
+    if (ret){
+		Noui=1;
+        return -1;
+	}
+
+    ev_init((ev_callback)input_callback, NULL);
+
     text_col = text_row = 0;
     text_rows = gr_fb_height() / CHAR_HEIGHT;
     if (text_rows > MAX_ROWS) text_rows = MAX_ROWS;
@@ -354,48 +359,53 @@ int ui_init(void)
 
 void ui_set_background(int icon)
 {
-    if(!Noui){
-    	pthread_mutex_lock(&gUpdateMutex);
-    	gCurrentIcon = gBackgroundIcon[icon];
-    	update_screen_locked();
-    	pthread_mutex_unlock(&gUpdateMutex);
-    }
+    if (!gr_draw)
+        return;
+
+    pthread_mutex_lock(&gUpdateMutex);
+    gCurrentIcon = gBackgroundIcon[icon];
+    update_screen_locked();
+    pthread_mutex_unlock(&gUpdateMutex);
 }
 
 void ui_show_indeterminate_progress()
 {
-    if (!Noui){
-    	pthread_mutex_lock(&gUpdateMutex);
-    	if (gProgressBarType != PROGRESSBAR_TYPE_INDETERMINATE) {
-        	gProgressBarType = PROGRESSBAR_TYPE_INDETERMINATE;
-        	update_progress_locked();
-        }
-    	pthread_mutex_unlock(&gUpdateMutex);
-    }	
+    if (!gr_draw)
+        return;
+
+    pthread_mutex_lock(&gUpdateMutex);
+    if (gProgressBarType != PROGRESSBAR_TYPE_INDETERMINATE) {
+        gProgressBarType = PROGRESSBAR_TYPE_INDETERMINATE;
+        update_progress_locked();
+    }
+    pthread_mutex_unlock(&gUpdateMutex);
 }
 
 void ui_show_progress(float portion, int seconds)
 {
-    if(!Noui){
-    	pthread_mutex_lock(&gUpdateMutex);
-    	gProgressBarType = PROGRESSBAR_TYPE_NORMAL;
-    	gProgressScopeStart += gProgressScopeSize;
-    	gProgressScopeSize = portion;
-    	gProgressScopeTime = time(NULL);
-    	gProgressScopeDuration = seconds;
-    	gProgress = 0;
-    	update_progress_locked();
-    	pthread_mutex_unlock(&gUpdateMutex);
-    }
+    if (!gr_draw)
+        return;
+
+    pthread_mutex_lock(&gUpdateMutex);
+    gProgressBarType = PROGRESSBAR_TYPE_NORMAL;
+    gProgressScopeStart += gProgressScopeSize;
+    gProgressScopeSize = portion;
+    gProgressScopeTime = time(NULL);
+    gProgressScopeDuration = seconds;
+    gProgress = 0;
+    update_progress_locked();
+    pthread_mutex_unlock(&gUpdateMutex);
 }
 
 void ui_set_progress(float fraction)
 {
-    if(!Noui){
-    	pthread_mutex_lock(&gUpdateMutex);
-    	if (fraction < 0.0) fraction = 0.0;
-    	if (fraction > 1.0) fraction = 1.0;
-    	if (gProgressBarType == PROGRESSBAR_TYPE_NORMAL && fraction > gProgress) {
+    if (!gr_draw)
+        return;
+
+    pthread_mutex_lock(&gUpdateMutex);
+    if (fraction < 0.0) fraction = 0.0;
+    if (fraction > 1.0) fraction = 1.0;
+    if (gProgressBarType == PROGRESSBAR_TYPE_NORMAL && fraction > gProgress) {
         // Skip updates that aren't visibly different.
         	int width = gr_get_width(gProgressBarIndeterminate[0]);
         	float scale = width * gProgressScopeSize;
@@ -410,134 +420,132 @@ void ui_set_progress(float fraction)
 
 void ui_reset_progress()
 {
-    if(!Noui){
-        pthread_mutex_lock(&gUpdateMutex);
-        gProgressBarType = PROGRESSBAR_TYPE_NONE;
-        gProgressScopeStart = gProgressScopeSize = 0;
-        gProgressScopeTime = gProgressScopeDuration = 0;
-        gProgress = 0;
-        update_screen_locked();
-        pthread_mutex_unlock(&gUpdateMutex);
-    }	
+    if (!gr_draw)
+        return;
+    pthread_mutex_lock(&gUpdateMutex);
+    gProgressBarType = PROGRESSBAR_TYPE_NONE;
+    gProgressScopeStart = gProgressScopeSize = 0;
+    gProgressScopeTime = gProgressScopeDuration = 0;
+    gProgress = 0;
+    update_screen_locked();
+    pthread_mutex_unlock(&gUpdateMutex);
 }
 
 void ui_print(const char *fmt, ...)
 {
-    if(!Noui){
-    	char buf[256];
-    	va_list ap;
-    	va_start(ap, fmt);
-    	vsnprintf(buf, 256, fmt, ap);
-    	va_end(ap);
+    char buf[256];
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buf, 256, fmt, ap);
+    va_end(ap);
 
-    	fputs(buf, stdout);
+    fputs(buf, stdout);
 
-    	// This can get called before ui_init(), so be careful.
-    	pthread_mutex_lock(&gUpdateMutex);
-    	if (text_rows > 0 && text_cols > 0) {
-            char *ptr;
-            for (ptr = buf; *ptr != '\0'; ++ptr) {
-                if (*ptr == '\n' || text_col >= text_cols) {
-                    text[text_row][text_col] = '\0';
-                    text_col = 0;
-                    text_row = (text_row + 1) % text_rows;
-                    if (text_row == text_top) text_top = (text_top + 1) % text_rows;
-                }
-                if (*ptr != '\n') text[text_row][text_col++] = *ptr;
-            }  
-            text[text_row][text_col] = '\0';
-            update_screen_locked();
+    if (!gr_draw)
+        return;
+
+    // This can get called before ui_init(), so be careful.
+    pthread_mutex_lock(&gUpdateMutex);
+    if (text_rows > 0 && text_cols > 0) {
+        char *ptr;
+        for (ptr = buf; *ptr != '\0'; ++ptr) {
+            if (*ptr == '\n' || text_col >= text_cols) {
+                text[text_row][text_col] = '\0';
+                text_col = 0;
+                text_row = (text_row + 1) % text_rows;
+                if (text_row == text_top) text_top = (text_top + 1) % text_rows;
+            }
+            if (*ptr != '\n') text[text_row][text_col++] = *ptr;
         }
     	pthread_mutex_unlock(&gUpdateMutex);
     }  
 }
 
-void ui_start_menu(char** headers, char** items, int initial_selection) {
-    if(!Noui){
-    	int i;
-    	pthread_mutex_lock(&gUpdateMutex);
-    	if (text_rows > 0 && text_cols > 0) {
-            for (i = 0; i < text_rows; ++i) {
-                if (headers[i] == NULL) break;
-            	strncpy(menu[i], headers[i], text_cols-1);
-            	menu[i][text_cols-1] = '\0';
-            }
-            menu_top = i;
-            for (; i < text_rows; ++i) {
-            	if (items[i-menu_top] == NULL) break;
-            	strncpy(menu[i], items[i-menu_top], text_cols-1);
-            	menu[i][text_cols-1] = '\0';
-            }
-            menu_items = i - menu_top;
-            show_menu = 1;
-            menu_sel = initial_selection;
-            update_screen_locked();
+void ui_start_menu(char** headers, char** items, int initial_selection)
+{
+    int i;
+
+    if (!gr_draw)
+        return;
+
+    pthread_mutex_lock(&gUpdateMutex);
+    if (text_rows > 0 && text_cols > 0) {
+        for (i = 0; i < text_rows; ++i) {
+            if (headers[i] == NULL) break;
+            strncpy(menu[i], headers[i], text_cols-1);
+            menu[i][text_cols-1] = '\0';
+        }
+        menu_top = i;
+        for (; i < text_rows; ++i) {
+            if (items[i-menu_top] == NULL) break;
+            strncpy(menu[i], items[i-menu_top], text_cols-1);
+            menu[i][text_cols-1] = '\0';
         }
     	pthread_mutex_unlock(&gUpdateMutex);
     }
 }
 
-int ui_menu_select(int sel) {
-    if(!Noui){
-    	int old_sel;
-    	pthread_mutex_lock(&gUpdateMutex);
-    	if (show_menu > 0) {
-            old_sel = menu_sel;
-            menu_sel = sel;
-            if (menu_sel < 0) menu_sel = 0;
-            if (menu_sel >= menu_items) menu_sel = menu_items-1;
-            sel = menu_sel;
-            if (menu_sel != old_sel) update_screen_locked();
-        }
-    	pthread_mutex_unlock(&gUpdateMutex);
-    	return sel;
+int ui_menu_select(int sel)
+{
+    int old_sel;
+
+    if (!gr_draw)
+        return 0;
+
+    pthread_mutex_lock(&gUpdateMutex);
+    if (show_menu > 0) {
+        old_sel = menu_sel;
+        menu_sel = sel;
+        if (menu_sel < 0) menu_sel = 0;
+        if (menu_sel >= menu_items) menu_sel = menu_items-1;
+        sel = menu_sel;
+        if (menu_sel != old_sel) update_screen_locked();
     }
 }
 
-void ui_end_menu() {
-    if(!Noui){
-    	int i;
-    	pthread_mutex_lock(&gUpdateMutex);
-    	if (show_menu > 0 && text_rows > 0 && text_cols > 0) {
-            show_menu = 0;
-            update_screen_locked();
-        }
-    	pthread_mutex_unlock(&gUpdateMutex);
+void ui_end_menu()
+{
+    int i;
+    if (!gr_draw)
+        return;
+
+    pthread_mutex_lock(&gUpdateMutex);
+    if (show_menu > 0 && text_rows > 0 && text_cols > 0) {
+        show_menu = 0;
+        update_screen_locked();
     }
 }
 
 int ui_text_visible()
 {
-    if(!Noui){
-    	pthread_mutex_lock(&gUpdateMutex);
-    	int visible = show_text;
-    	pthread_mutex_unlock(&gUpdateMutex);
-    	return visible;
-    }
+    if (!gr_draw)
+        return 0;
+
+    pthread_mutex_lock(&gUpdateMutex);
+    int visible = show_text;
+    pthread_mutex_unlock(&gUpdateMutex);
+    return visible;
 }
 
 void ui_show_text(int visible)
 {
-    if(!Noui){    
-    	pthread_mutex_lock(&gUpdateMutex);
-    	show_text = visible;
-    	update_screen_locked();
-    	pthread_mutex_unlock(&gUpdateMutex);
-    }
+    if (!gr_draw)
+        return;
+
+    pthread_mutex_lock(&gUpdateMutex);
+    show_text = visible;
+    update_screen_locked();
+    pthread_mutex_unlock(&gUpdateMutex);
 }
 
 int ui_wait_key()
 {
-    if(!Noui){    
-    	pthread_mutex_lock(&key_queue_mutex);
-    	while (key_queue_len == 0) {
-            pthread_cond_wait(&key_queue_cond, &key_queue_mutex);
-        }  
+    if (!gr_draw)
+        return 0;
 
-    	int key = key_queue[0];
-    	memcpy(&key_queue[0], &key_queue[1], sizeof(int) * --key_queue_len);
-    	pthread_mutex_unlock(&key_queue_mutex);
-    	return key;
+    pthread_mutex_lock(&key_queue_mutex);
+    while (key_queue_len == 0) {
+        pthread_cond_wait(&key_queue_cond, &key_queue_mutex);
     }
 }
 
