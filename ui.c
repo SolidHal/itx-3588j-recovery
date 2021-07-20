@@ -413,9 +413,8 @@ void ui_set_progress(float fraction)
             		gProgress = fraction;
             		update_progress_locked();
         	}	
-    	}
-    	pthread_mutex_unlock(&gUpdateMutex);
-     }
+    }
+    pthread_mutex_unlock(&gUpdateMutex);
 }
 
 void ui_reset_progress()
