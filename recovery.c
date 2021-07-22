@@ -1076,9 +1076,11 @@ main(int argc, char **argv) {
     }
 
     if (status != INSTALL_SUCCESS) ui_set_background(BACKGROUND_ICON_ERROR);
+#if 0
     if (status != INSTALL_SUCCESS || ui_text_visible()) {
         prompt_and_wait();
     }
+#endif
 
     if (sdupdate_package != NULL && bSDBootUpdate) {
         if (status == INSTALL_SUCCESS){
