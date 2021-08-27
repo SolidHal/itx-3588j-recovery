@@ -70,17 +70,28 @@ int rk_make_ext4fs(const char *filename,long long len, const char *mountpoint)
     const char *const mke2fs_argv[] = { "/sbin/mke2fs", "-t", "ext4", "-b", "4096", "-O", "^huge_file", "-m", "0", "-q", "-F", filename, NULL };
     const char *const e2fsck_argv[] = { "/sbin/e2fsck", "-fy", filename, NULL };
     printf("format '%s' to ext4 filesystem\n", filename);
-    result = run(mke2fs_argv[0], (char **) mke2fs_argv);
-    if(result) {
-        printf("format '%s' to ext4 error!\n", filename);
-        return result;
-    }
 
-    result = run(e2fsck_argv[0], (char **) e2fsck_argv);
-    if(result) {
-        printf("e2fsck check '%s' fail!\n", filename);
-        return result;
-    }
+	if (access("/usr/bin/resize-userdata.sh", X_OK) == 0) {
+		const char *const userdata_argv[] = { "/usr/bin/resize-userdata.sh", filename, NULL };
+		result = run(userdata_argv[0], (char **) userdata_argv);
+		if(result) {
+		    printf("resize-userdata '%s' error!\n", filename);
+		    return result;
+		}
+	}
+	else {
+		result = run(mke2fs_argv[0], (char **) mke2fs_argv);
+		if(result) {
+		    printf("format '%s' to ext4 error!\n", filename);
+		    return result;
+		}
+
+		result = run(e2fsck_argv[0], (char **) e2fsck_argv);
+		if(result) {
+		    printf("e2fsck check '%s' fail!\n", filename);
+		    return result;
+		}
+	}
 
     if(mountpoint != NULL) {
         int result2 = mount(filename, mountpoint, "ext4",
