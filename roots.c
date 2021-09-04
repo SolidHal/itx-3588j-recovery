@@ -41,6 +41,14 @@ char * get_link_path(const char* linkpath, char * buf, int count)
 	int rslt;
 	char path[256];
 
+    if (access("/usr/bin/relink-block.sh", X_OK) == 0) {
+        const char *const relink_argv[] = { "/usr/bin/relink-block.sh", NULL };
+        rslt = run(relink_argv[0], (char **) relink_argv);
+        if(rslt) {
+            printf(" ### relink-block error! ### \n");
+        }
+    }
+
 	memset(path, 0, sizeof(path));
 	strcpy(path, linkpath);
 	for (i = strlen(linkpath); i > 0; i--) {
