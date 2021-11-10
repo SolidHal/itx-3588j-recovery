@@ -152,6 +152,7 @@ int do_rk_update(const char *binary, const char *path) {
     stopLed(BLUE);
 
     return start_main(binary, args, pipefd);
+
 #if 0
     pid_t pid = fork();
     if(pid == 0){

@@ -29,6 +29,7 @@
 #include "roots.h"
 #include "common.h"
 #include "rktools.h"
+#include "mtdutils/rk29.h"
 //#include "make_ext4fs.h"
 
 static int num_volumes = 0;
@@ -60,7 +61,7 @@ char * get_link_path(const char* linkpath, char * buf, int count)
 
 	rslt = readlink(path, buf, count - 1);
 	if (rslt < 0 || (rslt >= count - 1)) {
-		printf("No link to path [%s]!!! \n", path);
+		// printf("No link to path [%s]!!! \n", path);
 		return NULL;
 	}
 
@@ -75,8 +76,7 @@ char * get_link_path(const char* linkpath, char * buf, int count)
 		buf[0] = '/';
 	}
 
-
-	printf("buf = %s \n", buf);
+	// printf("buf = %s \n", buf);
 	return buf;
 }
 
@@ -209,8 +209,8 @@ Volume* volume_for_path(const char* path) {
 	memset(mount_point, 0, sizeof(mount_point));
 	char* tmp = get_link_path(path, mount_point, 1024);
 
-	if ( tmp != NULL)
-		printf(" ### get mount_ponit = %s ### \n", mount_point);
+	// if ( tmp != NULL)
+	// 	printf(" ### get mount_ponit = %s ### \n", mount_point);
 
 	for (i = 0; i < num_volumes; ++i) {
 		Volume* v = device_volumes+i;
@@ -337,7 +337,7 @@ int ensure_ex_path_unmounted(const char* path) {
 	const MountedVolume* mv =
 		find_mounted_volume_by_mount_point(path);
 	if (mv == NULL) {
-		printf("path: %s is already unmounted or not existed\n");
+		LOGE("path: %s is already unmounted or not existed\n");
 		return 0;
 	}
 
