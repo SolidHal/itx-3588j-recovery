@@ -59,6 +59,7 @@ static const char *COMMAND_FILE = "/userdata/recovery/command";
 static const char *INTENT_FILE = "/userdata/recovery/intent";
 static const char *LOG_FILE = "/userdata/recovery/log";
 static const char *LAST_LOG_FILE = "/userdata/recovery/last_log";
+static const char *SDCARD_MOUNT = "/mnt/sdcard";
 static const char *SDCARD_ROOT = "/sdcard";
 static const char *SDCARD_ROOT2 = "/mnt/external_sd";
 static const char *USERDATA_ROOT = "/userdata";
@@ -1112,7 +1113,11 @@ main(int argc, char **argv) {
         if (status != INSTALL_SUCCESS) ui_print("Data wipe failed.\n");
     } else if (wipe_all) {
         if (device_wipe_data()) status = INSTALL_ERROR;
-        if (erase_volume("/userdata")) status = INSTALL_ERROR;
+        
+	if (umount(SDCARD_MOUNT) != 0)
+            LOGE("\n === umount /mnt/sdcard fail === \n");
+	
+	if (erase_volume("/userdata")) status = INSTALL_ERROR;
         if (status != INSTALL_SUCCESS) {
             ui_print("Data wipe failed.\n");
             printf("userdata wipe failed.\n");
