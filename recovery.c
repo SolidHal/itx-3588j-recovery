@@ -1113,10 +1113,11 @@ main(int argc, char **argv) {
         if (status != INSTALL_SUCCESS) ui_print("Data wipe failed.\n");
     } else if (wipe_all) {
         if (device_wipe_data()) status = INSTALL_ERROR;
+        printf("firefly: umount sdcard\r\n");
+	while(umount(SDCARD_MOUNT) == 0)
+            LOGE("\n === try umount /mnt/sdcard === \n");
         
-	if (umount(SDCARD_MOUNT) != 0)
-            LOGE("\n === umount /mnt/sdcard fail === \n");
-	
+	sleep(1);
 	if (erase_volume("/userdata")) status = INSTALL_ERROR;
         if (status != INSTALL_SUCCESS) {
             ui_print("Data wipe failed.\n");
