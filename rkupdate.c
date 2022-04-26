@@ -53,7 +53,7 @@ static int start_main (const char *binary, char *args[], int* pipefd) {
             char* str = strtok(NULL, "\n");
             if (str) {
                 printf(" >>>>>> %s <<<<<<\n", str);
-                ui_print("%s", str);
+                ui_print(" >>>>>> %s <<<<<<\n", str);
             } else {
                 ui_print("\n");
             }
