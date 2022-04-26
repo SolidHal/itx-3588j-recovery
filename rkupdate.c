@@ -148,8 +148,7 @@ int do_rk_update(const char *binary, const char *path) {
     args[4] = args_4;
     sprintf(args[4], "%d", (int)bSDBootUpdate);
     args[5] = NULL;
-    startLedBlink(YELLOW);
-    stopLed(BLUE);
+    startLedBlink();
 
     return start_main(binary, args, pipefd);
 

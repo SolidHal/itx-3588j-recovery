@@ -1189,8 +1189,8 @@ main(int argc, char **argv) {
             freopen("/dev/console", "w", stdout);
             printf("\nPlease remove SD CARD!!!, wait for reboot.\n");
             ui_print("Please remove SD CARD!!!, wait for reboot.");
-			stopLedBlink(YELLOW);
-			startLed(YELLOW);
+			stopLedBlink();
+			startLed();
 			ui_show_text(1);
 			ui_reset_progress();
 
