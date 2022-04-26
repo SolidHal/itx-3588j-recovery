@@ -201,7 +201,6 @@ void *thrd_led_func(void *arg) {
 	printf("Contrl %s led device\r\n", led_path[i]);
         while(isLedFlash) {
 		ledFd = fopen(led_path[i], "w");
-		printf("DEBUG: onoff = %d\r\n", onoff);
                 if(onoff) {
                         fprintf(ledFd, "%d", 0);
                         onoff = false;
